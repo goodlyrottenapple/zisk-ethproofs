@@ -66,7 +66,7 @@ ${C_BOLD}Required:${C_RESET}
   --elf <PATH>          Guest ELF file, passed to the client as --guest.
 
 ${C_BOLD}Options:${C_RESET}
-  --client <NAME>       Execution client: reth | ethrex | ziskethone (default: $CLIENT).
+  --client <NAME>       Execution client: reth | ethrex | ziskethone | monad (default: $CLIENT).
   --hints               Build ethproofs-client with --cfg=zisk_hints and stream
                         hints over $HINTS_SOCKET. Uses its own target dir, so
                         toggling this flag does not force a rebuild.
@@ -121,9 +121,13 @@ done
 ELF="$(cd -- "$(dirname -- "$ELF")" && pwd)/$(basename -- "$ELF")"
 
 case "$CLIENT" in
-    reth|ethrex|ziskethone) ;;
-    *) die "--client must be one of: reth, ethrex, ziskethone (got '$CLIENT')" ;;
+    reth|ethrex|ziskethone|monad) ;;
+    *) die "--client must be one of: reth, ethrex, ziskethone, monad (got '$CLIENT')" ;;
 esac
+
+if [[ "$CLIENT" == monad && "$HINTS" == 1 ]]; then
+    die "Monad does not support --hints"
+fi
 
 # Hints require the ASM backend, and --emulator is the alternative to it, so
 # the two can never be combined.

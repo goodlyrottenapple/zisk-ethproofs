@@ -356,6 +356,14 @@ impl CliArgs {
 
     /// Validate combinations that clap cannot express declaratively.
     pub fn validate(&self) -> Result<(), Error> {
+        #[cfg(zisk_hints)]
+        if !::input::create_client(self.client).emits_hints() {
+            return Err(Self::command().error(
+                ErrorKind::ArgumentConflict,
+                "selected client does not support hints; rebuild without --cfg=zisk_hints",
+            ));
+        }
+
         // Submitting to Ethproofs requires real (RPC-driven) blocks; the
         // folder-based input mode replays pre-generated inputs and would
         // submit stale or synthetic proofs.

@@ -301,6 +301,22 @@ async fn process_proof_success(
                 e
             );
         } else {
+            // Keep the SDK proof and its public output for local verification.
+            // The existing raw field-element file is still used for submission.
+            let sdk_path = proof_dir.join(format!("{}_proof.zisk", proved_block_number));
+            if let Err(e) = result.save_proof(&sdk_path) {
+                error!("Failed to save SDK proof to {}: {}", sdk_path.display(), e);
+            }
+            let publics: Vec<u8> = result
+                .get_publics()
+                .public_u64()
+                .iter()
+                .flat_map(|v| (*v as u32).to_le_bytes())
+                .collect();
+            let publics_path = proof_dir.join(format!("{}_publics.bin", proved_block_number));
+            if let Err(e) = std::fs::write(&publics_path, publics) {
+                error!("Failed to save public output to {}: {}", publics_path.display(), e);
+            }
             let proof_path = proof_dir.join(format!("{}_proof.bin", proved_block_number));
             match std::fs::write(&proof_path, proof_bytes.as_slice()) {
                 Ok(_) => info!(
