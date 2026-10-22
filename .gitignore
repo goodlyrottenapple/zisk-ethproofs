@@ -18,4 +18,4 @@ proofs
 /hints_debug
 /test
 /inputs_test
-/.run
+/.run/result*
