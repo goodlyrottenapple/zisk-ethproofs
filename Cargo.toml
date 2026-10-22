@@ -33,7 +33,7 @@ tar = "0.4.44"
 tokio = { version = "1.44.0", features = ["full"] }
 tokio-tungstenite = "0.21"
 url = "2.5.4"
-input = { git = "https://github.com/goodlyrottenapple/zisk-eth-client.git", rev = "fb31722e3735ae790abd8aadd524772c17d781ae", default-features = false, features = ["cli"] }
+input = { git = "https://github.com/goodlyrottenapple/zisk-eth-client.git", rev = "76f56eb8e681ba9d1688fa16e33fbdb52f29f086", default-features = false, features = ["cli"] }
 # input = { path = "../zisk-eth-client/crates/input", default-features = false, features = ["cli"] }
 
 lazy_static = "1.4"
