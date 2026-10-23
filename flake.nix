@@ -9,10 +9,22 @@
       pkgs = import nixpkgs { inherit system; };
       lib = pkgs.lib;
 
-      # ZisK's C++ STARK library links -liomp5; nixpkgs ships it as libomp.
+      # ZisK's C++ STARK library links -lmpi and -liomp5. The stock nixpkgs
+      # packages carry far more in their runtime closure than the client uses:
+      # OpenMPI's Fortran bindings and Omni-Path/libfabric transports, and
+      # libomp's OMPD debugger plugin, which depends on Python. Without them
+      # the client's closure is roughly half the size.
+      openmpi = (pkgs.openmpi.override { fortranSupport = false; fabricSupport = false; })
+        .overrideAttrs (old: {
+          # nixpkgs installs the oshmem Fortran wrappers regardless of
+          # fortranSupport, and they dangle without it.
+          postInstall = old.postInstall + "rm -f $out/bin/shmemfort $out/bin/oshfort\n";
+        });
+      openmp = pkgs.llvmPackages.openmp.override { ompdSupport = false; };
+      # -liomp5 is Intel's name for the library; nixpkgs ships it as libomp.
       iomp5 = pkgs.runCommand "iomp5-compat" { } ''
         mkdir -p $out/lib
-        ln -s ${pkgs.llvmPackages.openmp}/lib/libomp.so $out/lib/libiomp5.so
+        ln -s ${openmp}/lib/libomp.so $out/lib/libiomp5.so
       '';
 
       vendored = pkgs.rustPlatform.importCargoLock {
@@ -60,25 +72,27 @@
         buildFeatures = [ "monad" ];
         doCheck = false;
 
-        nativeBuildInputs = with pkgs; [
+        nativeBuildInputs = [
+          openmpi           # mpicc --showme:compile/link in the pil2-stark Makefile
+        ] ++ (with pkgs; [
           pkg-config
           gnumake
           nasm
           protobuf          # protoc + google/protobuf includes for zisk-coordinator-api
           rustPlatform.bindgenHook   # mpi-sys
           autoconf automake libtool texinfo   # libffi-sys builds libffi with autotools
-          openmpi           # mpicc --showme:compile/link in the pil2-stark Makefile
-        ];
-        buildInputs = with pkgs; [
+        ]);
+        buildInputs = [
           openmpi
-          llvmPackages.openmp
+          openmp
           iomp5
+        ] ++ (with pkgs; [
           libsodium
           gmp
           openssl
           nlohmann_json
           libffi
-        ];
+        ]);
 
         # No AVX-512 may remain outside blake3's runtime-dispatched code.
         postInstall = lib.optionalString (!enableAvx512) ''
